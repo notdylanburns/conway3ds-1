@@ -100,7 +100,7 @@ int main(int argc, char const *argv[])
 		}
 
 		//Reset counter if key is pressed or touch screen is touched
-		if (gameState == 0 && kDown && (touch.px || touch.py)) {
+		if (gameState == 0 && (kDown || (touch.px || touch.py))) {
 			framesSinceKeyPress = 0;
 		}
 	}
