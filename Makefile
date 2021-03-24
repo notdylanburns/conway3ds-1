@@ -41,7 +41,7 @@ GFXBUILD	:=	$(BUILD)
 APP_TITLE	:=	Conway 3DS
 APP_DESCRIPTION	:=	Conway's Game of Life for the 3DS
 APP_AUTHOR	:=	Sam
-#ROMFS		:=	romfs
+ROMFS		:=	romfs
 #GFXBUILD	:=	$(ROMFS)/gfx
 
 #---------------------------------------------------------------------------------
