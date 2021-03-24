@@ -35,6 +35,9 @@ int main(int argc, char const *argv[])
 	//Set game state
 	char gameState = 0; //0=menu 1=game 2=editor
 
+	//Set boolean for exiting game
+	char quit = 0;
+
 	//Create counter for frames since a key was pressed
 	uint32_t framesSinceKeyPress = 0;
 
@@ -44,17 +47,15 @@ int main(int argc, char const *argv[])
 	//Create Empty Grid for titlescreen
 	Grid *titlescreen = newEmptyGrid(4.0f);
 
-	//Read title screen from romfs
-	getTitle(titlescreen);
-
-	//Create empty grid for game
-	Grid *grid = newEmptyGrid(4.0f);
-	//Randomise grid
-	fillGridRandom(grid);
+	//Create empty grid pointer for game
+	Grid *grid;
 
 
 	//Main loop
 	while (aptMainLoop()) {
+
+		//If quit = 1 then quit the game loop
+		if (quit) break;
 
 		//Read button and touchscreen inputs
 		hidScanInput();
@@ -62,11 +63,15 @@ int main(int argc, char const *argv[])
 
 		u32 kDown = hidKeysDown();
 
-		//Check for start
-		if (kDown & KEY_START) break;
-
 		switch(gameState) {
 			case 0:
+
+				//Check for start
+				if (kDown & KEY_START) {
+					destroyGrid(titlescreen);
+					quit = 1;
+				}
+
 				if (framesSinceKeyPress > 1200) {
 					updateGrid(titlescreen);
 				} else if (framesSinceKeyPress == 0) {
@@ -75,6 +80,10 @@ int main(int argc, char const *argv[])
 
 				//If select button is pressed, start game
 				if (kDown & KEY_SELECT) {
+					//When switching to game, free the main menu from memory and initialise the grid
+					destroyGrid(titlescreen);
+					grid = newEmptyGrid(4.0f);
+					fillGridRandom(grid);
 					framesSinceKeyPress = 0;
 					gameState = 1;
 				}
@@ -90,6 +99,9 @@ int main(int argc, char const *argv[])
 
 				//If select button is pressed, go back to main menu
 				if (kDown & KEY_SELECT) {
+					//When switching to the main menu free the grid from memory and reinitialise the title
+					destroyGrid(grid);
+					titlescreen = newEmptyGrid(4.0f);
 					gameState = 0;
 				}
 
@@ -104,9 +116,6 @@ int main(int argc, char const *argv[])
 			framesSinceKeyPress = 0;
 		}
 	}
-
-	//Free grid memory
-	destroyGrid(grid);
 
 	//Deinit libs
 	C2D_Fini();
