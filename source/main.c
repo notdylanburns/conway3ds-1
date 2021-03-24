@@ -67,10 +67,7 @@ int main(int argc, char const *argv[])
 			case 0:
 
 				//Check for start
-				if (kDown & KEY_START) {
-					destroyGrid(titlescreen);
-					quit = 1;
-				}
+				if (kDown & KEY_START) quit = 1;
 
 				if (framesSinceKeyPress > 1200) {
 					updateGrid(titlescreen);
@@ -82,6 +79,7 @@ int main(int argc, char const *argv[])
 				if (kDown & KEY_SELECT) {
 					//When switching to game, free the main menu from memory and initialise the grid
 					destroyGrid(titlescreen);
+					titlescreen = NULL;
 					grid = newEmptyGrid(4.0f);
 					fillGridRandom(grid);
 					framesSinceKeyPress = 0;
@@ -101,6 +99,7 @@ int main(int argc, char const *argv[])
 				if (kDown & KEY_SELECT) {
 					//When switching to the main menu free the grid from memory and reinitialise the title
 					destroyGrid(grid);
+					grid = NULL;
 					titlescreen = newEmptyGrid(4.0f);
 					gameState = 0;
 				}
@@ -116,6 +115,10 @@ int main(int argc, char const *argv[])
 			framesSinceKeyPress = 0;
 		}
 	}
+
+	//If any pointers are still initialised, free them
+	if (titlescreen != NULL) destroyGrid(titlescreen);
+	if (grid != NULL) destroyGrid(grid);
 
 	//Deinit libs
 	C2D_Fini();
