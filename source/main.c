@@ -38,6 +38,9 @@ int main(int argc, char const *argv[])
 	//Create counter for frames since a key was pressed
 	uint32_t framesSinceKeyPress = 0;
 
+	//Create touch position object for touchscreen pressed
+	touchPosition touch;
+
 	//Create Empty Grid for titlescreen
 	Grid *titlescreen = newEmptyGrid(4.0f);
 
@@ -52,7 +55,10 @@ int main(int argc, char const *argv[])
 
 	//Main loop
 	while (aptMainLoop()) {
+
+		//Read button and touchscreen inputs
 		hidScanInput();
+		hidTouchRead(&touch);
 
 		u32 kDown = hidKeysDown();
 
@@ -93,8 +99,8 @@ int main(int argc, char const *argv[])
 				break;
 		}
 
-		//Reset counter if key is pressed
-		if (gameState == 0 && kDown) {
+		//Reset counter if key is pressed or touch screen is touched
+		if (gameState == 0 && kDown && (touch.px || touch.py)) {
 			framesSinceKeyPress = 0;
 		}
 	}
