@@ -12,6 +12,7 @@ void updateGrid(Grid *grid);
 
 int main(int argc, char const *argv[])
 {
+
 	//Init libs
 	gfxInitDefault();
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
@@ -84,6 +85,7 @@ int main(int argc, char const *argv[])
 					fillGridRandom(grid);
 					framesSinceKeyPress = 0;
 					gameState = 1;
+					break;
 				}
 
 				draw(titlescreen, top, clrBlack, clrWhite);
@@ -102,6 +104,7 @@ int main(int argc, char const *argv[])
 					grid = NULL;
 					titlescreen = newEmptyGrid(4.0f);
 					gameState = 0;
+					break;
 				}
 
 				//Update cells then draw
@@ -117,8 +120,11 @@ int main(int argc, char const *argv[])
 	}
 
 	//If any pointers are still initialised, free them
-	if (titlescreen != NULL) destroyGrid(titlescreen);
-	if (grid != NULL) destroyGrid(grid);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+	destroyGrid(titlescreen);
+	destroyGrid(grid);
+#pragma GCC diagnostic pop
 
 	//Deinit libs
 	C2D_Fini();
