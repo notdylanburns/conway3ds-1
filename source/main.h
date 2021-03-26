@@ -1,0 +1,9 @@
+#ifndef MAIN_H_GUARD
+#define MAIN_H_GUARD
+
+#define SCREEN_WIDTH 400
+#define SCREEN_HEIGHT 240
+#define BOTTOM_SCREEN_WIDTH 320
+#define BOTTOM_SCREEN_HEIGHT 240
+
+#endif

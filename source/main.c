@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
+#include "main.h"
 #include "grid.h"
 
 #include <3ds.h>
@@ -9,6 +11,16 @@
 void getTitle(Grid *grid);
 void draw(Grid *grid, C3D_RenderTarget *screen, u32 bgColour, u32 fgColour);
 void updateGrid(Grid *grid);
+void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour);
+void beginFrame();
+void endFrame();
+void clrScreen(C3D_RenderTarget *screen, u32 colour);
+void mainMenuInit();
+void mainMenuDeInit();
+
+//Create text objects for menu
+C2D_TextBuf menuBuffer;
+C2D_Text menuText[3];
 
 int main(int argc, char const *argv[])
 {
@@ -28,13 +40,20 @@ int main(int argc, char const *argv[])
 
 	//Create screens
 	C3D_RenderTarget *top = C2D_CreateScreenTarget(GFX_TOP, GFX_LEFT);
+	C3D_RenderTarget *bottom = C2D_CreateScreenTarget(GFX_BOTTOM, GFX_LEFT);
 
 	//Define Colours
 	u32 clrWhite = C2D_Color32f(1.0f,1.0f,1.0f,1.0f);
-	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,0.0f);
+	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,1.0f);
 
 	//Set game state
 	char gameState = 0; //0=menu 1=game 2=editor
+
+	//Set menu selection
+	signed char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
+
+	//Generate strings for main menu
+	mainMenuInit();
 
 	//Set boolean for exiting game
 	char quit = 0;
@@ -67,28 +86,52 @@ int main(int argc, char const *argv[])
 		switch(gameState) {
 			case 0:
 
-				//Check for start
-				if (kDown & KEY_START) quit = 1;
-
 				if (framesSinceKeyPress > 1200) {
 					updateGrid(titlescreen);
+					framesSinceKeyPress = 1200; //Keep framesincekeypress at 1200 so as to prevent overflows if the game is left too long
 				} else if (framesSinceKeyPress == 0) {
 					getTitle(titlescreen);
 				}
 
-				//If select button is pressed, start game
-				if (kDown & KEY_SELECT) {
-					//When switching to game, free the main menu from memory and initialise the grid
-					destroyGrid(titlescreen);
-					titlescreen = NULL;
-					grid = newEmptyGrid(4.0f);
-					fillGridRandom(grid);
-					framesSinceKeyPress = 0;
-					gameState = 1;
+				//Menu Navigation
+				if (kDown & KEY_DDOWN) {
+					menuSelection += 1;
+					if (menuSelection > 2) menuSelection = 2;
+				}
+				if (kDown & KEY_DUP) {
+					menuSelection -= 1;
+					if (menuSelection < 0) menuSelection = 0;
+				}
+
+				//Menu Logic
+				if (kDown & KEY_A) {
+					switch(menuSelection) {
+						case 0:
+							//When switching to game, free the main menu from memory and initialise the grid
+							destroyGrid(titlescreen);
+							titlescreen = NULL;
+							grid = newEmptyGrid(4.0f);
+							fillGridRandom(grid);
+							framesSinceKeyPress = 0;
+							gameState = 1;
+							break;
+						case 2:
+							quit = 1;
+							break;
+					}
+				}
+
+				//Check for exit signal
+				if (gameState == 1) {
 					break;
 				}
 
+				beginFrame();
+				//Draw Title Screen
 				draw(titlescreen, top, clrBlack, clrWhite);
+				//Draw Main Menu
+				drawMenu(bottom, menuSelection, clrBlack, clrWhite);
+				endFrame();
 				framesSinceKeyPress += 1;
 				break;
 			case 1:
@@ -103,13 +146,20 @@ int main(int argc, char const *argv[])
 					destroyGrid(grid);
 					grid = NULL;
 					titlescreen = newEmptyGrid(4.0f);
+					//Set game state and menu selection
+					menuSelection = 0;
 					gameState = 0;
 					break;
 				}
 
 				//Update cells then draw
 				updateGrid(grid);
+				beginFrame();
 				draw(grid, top, clrBlack, clrWhite);
+				//Clear bottom screen
+				clrScreen(bottom, clrBlack);
+				C2D_SceneBegin(bottom);
+				endFrame();
 				break;
 		}
 
@@ -122,9 +172,12 @@ int main(int argc, char const *argv[])
 	//If any pointers are still initialised, free them
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
-	destroyGrid(titlescreen);
-	destroyGrid(grid);
+	if (titlescreen != NULL) destroyGrid(titlescreen);
+	if (grid != NULL) destroyGrid(grid);
 #pragma GCC diagnostic pop
+
+	//Destroy text buffers
+	mainMenuDeInit();
 
 	//Deinit libs
 	C2D_Fini();
@@ -135,6 +188,38 @@ int main(int argc, char const *argv[])
 	return 0;
 }
 
+void beginFrame() {
+	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
+}
+
+void endFrame() {
+	C3D_FrameEnd(0);
+}
+
+void clrScreen(C3D_RenderTarget *screen, u32 colour) {
+	C2D_TargetClear(screen, colour);
+}
+
+void mainMenuInit() {
+	//Create text buffer
+	menuBuffer = C2D_TextBufNew(4096);
+
+	//Parse the strings
+	C2D_TextParse(&menuText[0], menuBuffer, "START");
+	C2D_TextParse(&menuText[1], menuBuffer, "EDITOR");
+	C2D_TextParse(&menuText[2], menuBuffer, "EXIT");
+
+	//Optimise text
+	C2D_TextOptimize(&menuText[0]);
+	C2D_TextOptimize(&menuText[1]);
+	C2D_TextOptimize(&menuText[2]);
+}
+
+void mainMenuDeInit() {
+	//Delete the text buffer
+	C2D_TextBufDelete(menuBuffer);
+}
+
 void getTitle(Grid *grid) {
 	FILE *fp;
 	fp = fopen("romfs:/data/title.dat", "r");
@@ -142,16 +227,57 @@ void getTitle(Grid *grid) {
 	fclose(fp);
 }
 
+void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour) {
+	//Setup the screen
+	clrScreen(screen, bgColour);
+	C2D_SceneBegin(screen);
+
+	//Floats for text dimensions and coords
+	float textWidth;
+	float textHeight;
+	float x;
+	float y;
+	float selectionBoxX;
+	float selectionBoxY;
+	float selectionBoxWidth;
+	float selectionBoxHeight;
+
+	for (unsigned char i = 0; i < 3; i++) {
+		//Get text dimensions
+		C2D_TextGetDimensions(&menuText[i], 0.5f, 0.5f, &textWidth, &textHeight);
+		//Calculate vertical spacing
+		x = (BOTTOM_SCREEN_WIDTH / 2) - (textWidth / 2);
+		y = (((BOTTOM_SCREEN_HEIGHT - 150) * 3 * i) / 6) + 75 - (textHeight / 2);
+
+		if (selection == i) {
+
+			selectionBoxX = x - 6;
+			selectionBoxY = y - 2;
+			selectionBoxWidth = textWidth + 12;
+			selectionBoxHeight = textHeight + 4;
+
+			//Draw Square
+			C2D_DrawRectSolid(selectionBoxX, selectionBoxY, 0.0f, selectionBoxWidth, selectionBoxHeight, fgColour);
+
+			//Draw Text
+			C2D_DrawText(&menuText[i], C2D_WithColor, x, y, 0.0f, 0.5f, 0.5f, bgColour);
+
+			//Skip to next iteration
+			continue;
+		}
+
+		//Draw Text
+		C2D_DrawText(&menuText[i], C2D_WithColor, x, y, 0.0f, 0.5f, 0.5f, fgColour);
+	}
+}
+
 void draw(Grid *grid, C3D_RenderTarget *screen, u32 bgColour, u32 fgColour) {
 	//Render the scene
-	C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-	C2D_TargetClear(screen, bgColour);
+	clrScreen(screen, bgColour);
 	C2D_SceneBegin(screen);
 
 	//Draw Squares
 	drawGrid(grid, fgColour);
-
-	C3D_FrameEnd(0);
 }
 
 void updateGrid(Grid *grid) {
