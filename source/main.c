@@ -51,10 +51,10 @@ int main(int argc, char const *argv[])
 	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,1.0f);
 
 	//Set game state
-	unsigned char gameState = 0; //0=menu 1=game 2=editor
+	signed char gameState = 0; //0=menu 1=game 2=editor
 
 	//Set menu selection
-	unsigned char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
+	signed char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
 
 	//Set game paused status
 	unsigned char gamePaused = 0;
@@ -104,11 +104,11 @@ int main(int argc, char const *argv[])
 				//Menu Navigation
 				if (kDown & KEY_DDOWN) {
 					menuSelection += 1;
-					if (menuSelection > 2) menuSelection = 2;
+					if (menuSelection > 2) menuSelection = 0;
 				}
 				if (kDown & KEY_DUP) {
 					menuSelection -= 1;
-					if (menuSelection < 0) menuSelection = 0;
+					if (menuSelection < 0) menuSelection = 2;
 				}
 
 				//Menu Logic
@@ -155,6 +155,13 @@ int main(int argc, char const *argv[])
 				//Randomise grid when a button is pressed
 				if (kDown & KEY_A) {
 					fillGridRandom(grid);
+					beginFrame();
+					draw(grid, top, clrBlack, clrWhite);
+					//Clear bottom screen
+					C2D_SceneBegin(bottom);
+					clrScreen(bottom, clrBlack);
+					endFrame();
+					break;
 				}
 
 				//If start button is pressed, pause game
@@ -184,8 +191,8 @@ int main(int argc, char const *argv[])
 					beginFrame();
 					draw(grid, top, clrBlack, clrWhite);
 					//Clear bottom screen
-					clrScreen(bottom, clrBlack);
 					C2D_SceneBegin(bottom);
+					clrScreen(bottom, clrBlack);
 					endFrame();
 				} else {
 					beginFrame();
