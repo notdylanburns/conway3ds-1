@@ -22,6 +22,10 @@ void mainMenuDeInit();
 C2D_TextBuf menuBuffer;
 C2D_Text menuText[3];
 
+//Create text objects for game
+C2D_TextBuf gameBuffer;
+C2D_Text gameText[1];
+
 int main(int argc, char const *argv[])
 {
 
@@ -47,10 +51,14 @@ int main(int argc, char const *argv[])
 	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,1.0f);
 
 	//Set game state
-	char gameState = 0; //0=menu 1=game 2=editor
+	unsigned char gameState = 0; //0=menu 1=game 2=editor
 
 	//Set menu selection
-	signed char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
+	unsigned char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
+
+	//Set game paused status
+	unsigned char gamePaused = 0;
+	float pausetextWidth, pausetextHeight, pausetextPadding, pausetextX, pausetextY;
 
 	//Generate strings for main menu
 	mainMenuInit();
@@ -114,6 +122,15 @@ int main(int argc, char const *argv[])
 							fillGridRandom(grid);
 							framesSinceKeyPress = 0;
 							gameState = 1;
+
+							//Create game text buffers
+							gameBuffer = C2D_TextBufNew(7);
+							C2D_TextParse(&gameText[0], gameBuffer, "PAUSED");
+							C2D_TextOptimize(&gameText[0]);
+							pausetextPadding = 5.0f;
+							C2D_TextGetDimensions(&gameText[0], 1.0f, 1.0f, &pausetextWidth, &pausetextHeight);
+							pausetextX = TOP_SCREEN_WIDTH - pausetextWidth - pausetextPadding;
+							pausetextY = pausetextPadding;
 							break;
 						case 2:
 							quit = 1;
@@ -140,26 +157,42 @@ int main(int argc, char const *argv[])
 					fillGridRandom(grid);
 				}
 
+				//If start button is pressed, pause game
+				if (kDown & KEY_START) {
+					gamePaused = !gamePaused;
+				}
+
 				//If select button is pressed, go back to main menu
 				if (kDown & KEY_SELECT) {
 					//When switching to the main menu free the grid from memory and reinitialise the title
 					destroyGrid(grid);
 					grid = NULL;
 					titlescreen = newEmptyGrid(4.0f);
-					//Set game state and menu selection
+					//Delete text buffer
+					C2D_TextBufDelete(gameBuffer);
+					//Set game state and menu selection and unpause game
+					gamePaused = 0;
 					menuSelection = 0;
 					gameState = 0;
 					break;
 				}
 
-				//Update cells then draw
-				updateGrid(grid);
-				beginFrame();
-				draw(grid, top, clrBlack, clrWhite);
-				//Clear bottom screen
-				clrScreen(bottom, clrBlack);
-				C2D_SceneBegin(bottom);
-				endFrame();
+				//Update screen if the game isn't paused
+				if (!gamePaused) {
+					//Update cells then draw
+					updateGrid(grid);
+					beginFrame();
+					draw(grid, top, clrBlack, clrWhite);
+					//Clear bottom screen
+					clrScreen(bottom, clrBlack);
+					C2D_SceneBegin(bottom);
+					endFrame();
+				} else {
+					beginFrame();
+					C2D_SceneBegin(top);
+					C2D_DrawText(&gameText[0],C2D_WithColor, pausetextX, pausetextY, 0.0f, 1.0f, 1.0f, C2D_Color32f(1.0f,0.0f,0.0f,1.0f));
+					endFrame();
+				}
 				break;
 		}
 
@@ -202,7 +235,7 @@ void clrScreen(C3D_RenderTarget *screen, u32 colour) {
 
 void mainMenuInit() {
 	//Create text buffer
-	menuBuffer = C2D_TextBufNew(4096);
+	menuBuffer = C2D_TextBufNew(18);
 
 	//Parse the strings
 	C2D_TextParse(&menuText[0], menuBuffer, "START");
@@ -232,7 +265,7 @@ void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColo
 	clrScreen(screen, bgColour);
 	C2D_SceneBegin(screen);
 
-	//Floats for text dimensions and coords
+	//Floats for text dimensions and coordsC2D_Scene
 	float textWidth;
 	float textHeight;
 	float x;
