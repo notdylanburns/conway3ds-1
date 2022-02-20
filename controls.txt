@@ -1,0 +1,16 @@
+GAME:
+
+START - Pause
+SELECT - Return to main menu
+A - Randomise grid
+Pause + B - Step forward 1 frame
+
+EDITOR:
+
+DIRECTIONAL_PAD - Move cursor
+A - Place Cell
+B - Remove Cell
+SELECT = Return to main menu
+START - Run Simulation
+L - Shrink cursor
+R - Enlarge cursor

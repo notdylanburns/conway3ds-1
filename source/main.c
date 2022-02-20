@@ -1,7 +1,7 @@
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 #include <math.h>
-
 #include "main.h"
 #include "grid.h"
 
@@ -17,6 +17,9 @@ void endFrame();
 void clrScreen(C3D_RenderTarget *screen, u32 colour);
 void mainMenuInit();
 void mainMenuDeInit();
+void gameTextInit();
+void gameTextDeInit();
+
 
 //Create text objects for menu
 C2D_TextBuf menuBuffer;
@@ -25,6 +28,7 @@ C2D_Text menuText[3];
 //Create text objects for game
 C2D_TextBuf gameBuffer;
 C2D_Text gameText[1];
+float pausetextWidth, pausetextHeight, pausetextPadding, pausetextX, pausetextY;
 
 int main(int argc, char const *argv[])
 {
@@ -51,6 +55,7 @@ int main(int argc, char const *argv[])
 	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,1.0f);
 	//u32 clrGrey = C2D_Color32f(211.0f,211.0f,211.0f,1.0f);
 	u32 clrRed = C2D_Color32f(1.0f,0.0f,0.0f,1.0f);
+	u32 clrPink = C2D_Color32f(1.0f,0.42f,0.42f,1.0f);
 
 	//Set game state
 	signed char gameState = 0; //0=menu 1=game 2=editor
@@ -60,10 +65,13 @@ int main(int argc, char const *argv[])
 
 	//Set game paused status
 	unsigned char gamePaused = 0;
-	float pausetextWidth, pausetextHeight, pausetextPadding, pausetextX, pausetextY;
 
-	//Generate strings for main menu
+	//Set cell size
+	float cellSize = 4.0f;
+
+	//Generate strings for main menu and game
 	mainMenuInit();
+	gameTextInit();
 
 	//Set boolean for exiting game
 	char quit = 0;
@@ -80,9 +88,10 @@ int main(int argc, char const *argv[])
 	//Create empty grid pointer for game
 	Grid *grid;
 
-	//Create empty grid pointer for editor
-	Grid *editor;
+	//Create empty grid for editor
+	Grid *editor = newEmptyGrid(cellSize);
 	uint32_t cellCursor = 0;
+	unsigned char cursorScale = 1;
 
 	//Main loop
 	while (aptMainLoop()) {
@@ -123,25 +132,15 @@ int main(int argc, char const *argv[])
 							//When switching to game, free the main menu from memory and initialise the grid
 							destroyGrid(titlescreen);
 							titlescreen = NULL;
-							grid = newEmptyGrid(4.0f);
+							grid = newEmptyGrid(cellSize);
 							fillGridRandom(grid);
 							framesSinceKeyPress = 0;
 							gameState = 1;
-
-							//Create game text buffers
-							gameBuffer = C2D_TextBufNew(7);
-							C2D_TextParse(&gameText[0], gameBuffer, "PAUSED");
-							C2D_TextOptimize(&gameText[0]);
-							pausetextPadding = 5.0f;
-							C2D_TextGetDimensions(&gameText[0], 1.0f, 1.0f, &pausetextWidth, &pausetextHeight);
-							pausetextX = TOP_SCREEN_WIDTH - pausetextWidth - pausetextPadding;
-							pausetextY = pausetextPadding;
 							break;
 						case 1:
 							//When switching to editor, free the main menu from memory and initialise the grid
 							destroyGrid(titlescreen);
 							titlescreen = NULL;
-							editor = newEmptyGrid(4.0f);
 							framesSinceKeyPress = 0;
 							gameState = 2;
 							break;
@@ -188,8 +187,6 @@ int main(int argc, char const *argv[])
 					destroyGrid(grid);
 					grid = NULL;
 					titlescreen = newEmptyGrid(4.0f);
-					//Delete text buffer
-					C2D_TextBufDelete(gameBuffer);
 					//Set game state and menu selection and unpause game
 					gamePaused = 0;
 					menuSelection = 0;
@@ -209,8 +206,16 @@ int main(int argc, char const *argv[])
 					endFrame();
 				} else {
 					beginFrame();
-					C2D_SceneBegin(top);
+					if (kDown & KEY_B) {
+						updateGrid(grid);
+						draw(grid, top, clrBlack, clrWhite);
+					} else {
+						C2D_SceneBegin(top);
+					}
 					C2D_DrawText(&gameText[0],C2D_WithColor, pausetextX, pausetextY, 0.0f, 1.0f, 1.0f, clrRed);
+					//Clear bottom screen
+					C2D_SceneBegin(bottom);
+					clrScreen(bottom, clrBlack);
 					endFrame();
 				}
 				break;
@@ -219,6 +224,7 @@ int main(int argc, char const *argv[])
 				uint32_t cursorCoords = getCoords(editor, cellCursor);
 				uint32_t cursorX = (cursorCoords & 0xFFFF0000) >> 16;
 				uint32_t cursorY = cursorCoords & 0x0000FFFF;
+				uint32_t x,y,cursorIndex;
 
 				if (kDown) {
 					if (kDown & KEY_DRIGHT && cursorX < (TOP_SCREEN_WIDTH - editor->cellSize)) cellCursor += 1;
@@ -235,8 +241,6 @@ int main(int argc, char const *argv[])
 					//If select button is pressed, go back to main menu
 					if (kDown & KEY_SELECT) {
 						//When switching to the main menu free the grid from memory and reinitialise the title
-						destroyGrid(editor);
-						grid = editor;
 						titlescreen = newEmptyGrid(4.0f);
 						//Set game state and menu selection
 						menuSelection = 0;
@@ -244,11 +248,38 @@ int main(int argc, char const *argv[])
 						break;
 					}
 
-					//If A button pressed, place cell
-					if (kDown & KEY_A) newCell(editor, cellCursor);
+					//Manage the placing of cells
+					if (kDown) {
+						for (int i = 0; i < cursorScale; i++) {
+							for (int j = 0; j < cursorScale; j++) {
+								cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
 
-					//If B button pressed, remove cell
-					if (kDown & KEY_B) killCell(editor, cellCursor);
+								//Kill or Place cells
+								if (kDown & KEY_A) newCell(editor, cursorIndex);
+								else if (kDown & KEY_B) killCell(editor, cursorIndex);
+							}
+						}
+					}
+
+					//If L button pressed, shrink cursor
+					if ((kDown & KEY_L) && (cursorScale > 1)) cursorScale -= 1;
+
+					//If R button pressed, enlarge the cursor
+					if ((kDown & KEY_R) && (cursorScale < 10)) cursorScale += 1;
+
+					//If START button pressed, start game
+					if (kDown & KEY_START) {
+						grid = newEmptyGrid(editor->cellSize);
+						if (grid == NULL) break;
+
+						for (int i = 0;i < grid->size;i++) {
+							grid->cells[i] = editor->cells[i];
+						}
+
+						framesSinceKeyPress = 0;
+						gameState = 1;
+						break;
+					}
 				}
 
 				beginFrame();
@@ -257,7 +288,22 @@ int main(int argc, char const *argv[])
 				clrScreen(top, clrBlack);
 				draw(editor, top, clrBlack, clrWhite);
 				//Draw cursor
-				C2D_DrawRectSolid(cursorX,cursorY,0.0f,editor->cellSize,editor->cellSize,clrRed);
+
+				for (int i = 0; i < cursorScale; i++) {
+					for (int j = 0; j < cursorScale; j++) {
+						x = cursorX + (i * editor->cellSize);
+						y = cursorY + (j * editor->cellSize);
+
+						cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
+
+						if (isAlive(editor->cells[cursorIndex])) {
+							C2D_DrawRectSolid(x,y,0.0f,editor->cellSize,editor->cellSize,clrPink);
+						} else {
+							C2D_DrawRectSolid(x,y,0.0f,editor->cellSize,editor->cellSize,clrRed);
+						}
+					}
+				}
+
 				//Clear bottom screen
 				C2D_SceneBegin(bottom);
 				clrScreen(bottom, clrBlack);
@@ -281,6 +327,7 @@ int main(int argc, char const *argv[])
 
 	//Destroy text buffers
 	mainMenuDeInit();
+	gameTextDeInit();
 
 	//Deinit libs
 	C2D_Fini();
@@ -321,6 +368,21 @@ void mainMenuInit() {
 void mainMenuDeInit() {
 	//Delete the text buffer
 	C2D_TextBufDelete(menuBuffer);
+}
+
+void gameTextInit() {
+	gameBuffer = C2D_TextBufNew(7);
+	C2D_TextParse(&gameText[0], gameBuffer, "PAUSED");
+	C2D_TextOptimize(&gameText[0]);
+	pausetextPadding = 5.0f;
+	C2D_TextGetDimensions(&gameText[0], 1.0f, 1.0f, &pausetextWidth, &pausetextHeight);
+	pausetextX = TOP_SCREEN_WIDTH - pausetextWidth - pausetextPadding;
+	pausetextY = pausetextPadding;
+}
+
+void gameTextDeInit() {
+	//Delete the text buffer
+	C2D_TextBufDelete(gameBuffer);
 }
 
 void getTitle(Grid *grid) {
