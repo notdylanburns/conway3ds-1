@@ -164,7 +164,7 @@ int main(int argc, char const *argv[])
 				framesSinceKeyPress += 1;
 				break;
 			case 1:
-				//Randomise grid when a button is pressed
+				//Randomise grid when A button is pressed
 				if (kDown & KEY_A) {
 					fillGridRandom(grid);
 					beginFrame();
@@ -173,6 +173,15 @@ int main(int argc, char const *argv[])
 					C2D_SceneBegin(bottom);
 					clrScreen(bottom, clrBlack);
 					endFrame();
+					break;
+				}
+
+				//If B button is pressed, return to editor
+				if ((kDown & KEY_B) && !gamePaused) {
+					destroyGrid(grid);
+					grid = NULL;
+					gamePaused = 0;
+					gameState = 2;
 					break;
 				}
 
@@ -208,10 +217,8 @@ int main(int argc, char const *argv[])
 					beginFrame();
 					if (kDown & KEY_B) {
 						updateGrid(grid);
-						draw(grid, top, clrBlack, clrWhite);
-					} else {
-						C2D_SceneBegin(top);
 					}
+					draw(grid, top, clrBlack, clrWhite);
 					C2D_DrawText(&gameText[0],C2D_WithColor, pausetextX, pausetextY, 0.0f, 1.0f, 1.0f, clrRed);
 					//Clear bottom screen
 					C2D_SceneBegin(bottom);
@@ -249,15 +256,20 @@ int main(int argc, char const *argv[])
 					}
 
 					//Manage the placing of cells
-					if (kDown) {
-						for (int i = 0; i < cursorScale; i++) {
-							for (int j = 0; j < cursorScale; j++) {
-								cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
+					for (int i = 0; i < cursorScale; i++) {
+						for (int j = 0; j < cursorScale; j++) {
+							cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
 
-								//Kill or Place cells
-								if (kDown & KEY_A) newCell(editor, cursorIndex);
-								else if (kDown & KEY_B) killCell(editor, cursorIndex);
-							}
+							//Kill or Place cells
+							if (kDown & KEY_A) newCell(editor, cursorIndex);
+							else if (kDown & KEY_B) killCell(editor, cursorIndex);
+						}
+					}
+
+					//If Y is Pressed, clear the screen
+					if (kDown & KEY_Y) {
+						for (int i = 0; i < editor->size; i++) {
+							editor->cells[i] = (char)0;
 						}
 					}
 
@@ -279,6 +291,8 @@ int main(int argc, char const *argv[])
 						}
 
 						framesSinceKeyPress = 0;
+						//Pause the game by default;
+						gamePaused = 1;
 						gameState = 1;
 						break;
 					}
