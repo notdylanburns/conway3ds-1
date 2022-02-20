@@ -227,9 +227,9 @@ int main(int argc, char const *argv[])
 				uint32_t x,y,cursorIndex;
 
 				if (kDown) {
-					if (kDown & KEY_DRIGHT && cursorX < (TOP_SCREEN_WIDTH - editor->cellSize)) cellCursor += 1;
+					if (kDown & KEY_DRIGHT && cursorX < (TOP_SCREEN_WIDTH - (editor->cellSize * cursorScale))) cellCursor += 1;
 					if (kDown & KEY_DLEFT && cursorX > 0) cellCursor -= 1;
-					if (kDown & KEY_DDOWN && cursorY < (TOP_SCREEN_HEIGHT - editor->cellSize)) {
+					if (kDown & KEY_DDOWN && cursorY < (TOP_SCREEN_HEIGHT - (editor->cellSize * cursorScale))) {
 						uint32_t newCoords = (cursorX << 16) | (int)(cursorY + editor->cellSize);
 						cellCursor = getIndex(editor, newCoords);
 					}
@@ -265,7 +265,9 @@ int main(int argc, char const *argv[])
 					if ((kDown & KEY_L) && (cursorScale > 1)) cursorScale -= 1;
 
 					//If R button pressed, enlarge the cursor
-					if ((kDown & KEY_R) && (cursorScale < 10)) cursorScale += 1;
+					if ((kDown & KEY_R) && (cursorScale < 20) && cursorX < (TOP_SCREEN_WIDTH - (editor->cellSize * cursorScale)) && cursorY < (TOP_SCREEN_HEIGHT - (editor->cellSize * cursorScale))) {
+						cursorScale += 1;
+					}
 
 					//If START button pressed, start game
 					if (kDown & KEY_START) {
