@@ -151,7 +151,7 @@ int main(int argc, char const *argv[])
 				}
 
 				//Check for exit signal
-				if (gameState == 1) {
+				if (gameState != 0) {
 					break;
 				}
 
