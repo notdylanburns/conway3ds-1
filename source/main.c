@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
 	//Init libs
 	gfxInitDefault();
 	C3D_Init(C3D_DEFAULT_CMDBUF_SIZE);
-	C2D_Init(C2D_DEFAULT_MAX_OBJECTS);
+	C2D_Init(C2D_DEFAULT_MAX_OBJECTS * 2);
 	C2D_Prepare();
 
 	//Initiate romfs
@@ -93,8 +93,8 @@ int main(int argc, char const *argv[])
 	uint32_t cellCursor = 0;
 	unsigned char cursorScale = 1;
 	uint32_t leftCursorFrames,rightCursorFrames,upCursorFrames,downCursorFrames;
-	unsigned char aDelay = 1;
-	unsigned char aFrames = 0;
+	unsigned char abDelay = 1;
+	unsigned char abFrames = 0;
 	leftCursorFrames=rightCursorFrames=upCursorFrames=downCursorFrames = 0;
 
 	//Main loop
@@ -260,7 +260,7 @@ int main(int argc, char const *argv[])
 				}
 
 				//Place or remove cells
-				if ((kDown || kHeld) && !aDelay) {
+				if ((kDown || kHeld) && !abDelay) {
 					for (int i = 0; i < cursorScale; i++) {
 						for (int j = 0; j < cursorScale; j++) {
 							cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
@@ -281,6 +281,7 @@ int main(int argc, char const *argv[])
 						//Set game state and menu selection
 						menuSelection = 0;
 						gameState = 0;
+						abDelay = 1;
 						break;
 					}
 
@@ -311,6 +312,7 @@ int main(int argc, char const *argv[])
 						framesSinceKeyPress = 0;
 						//Pause the game by default;
 						gamePaused = 1;
+						abDelay = 1;
 						gameState = 1;
 						break;
 					}
@@ -328,15 +330,17 @@ int main(int argc, char const *argv[])
 				if (kUp & KEY_DUP) upCursorFrames = 0;
 				if (kUp & KEY_DDOWN) downCursorFrames = 0;
 
-				//Increment aframes
-				if (aDelay) aFrames += 1;
-				if (aFrames > 10) aDelay = 0;
+				//Increment aframes and bframes
+				if (abDelay) abFrames += 1;
+				if (abFrames > 10) abDelay = abFrames = 0;
 
 				beginFrame();
 				C2D_SceneBegin(top);
+				
 				//Clear top screen and draw grid
 				clrScreen(top, clrBlack);
 				draw(editor, top, clrBlack, clrWhite);
+				
 				//Draw cursor
 
 				for (int i = 0; i < cursorScale; i++) {
