@@ -92,6 +92,10 @@ int main(int argc, char const *argv[])
 	Grid *editor = newEmptyGrid(cellSize);
 	uint32_t cellCursor = 0;
 	unsigned char cursorScale = 1;
+	uint32_t leftCursorFrames,rightCursorFrames,upCursorFrames,downCursorFrames;
+	unsigned char aDelay = 1;
+	unsigned char aFrames = 0;
+	leftCursorFrames=rightCursorFrames=upCursorFrames=downCursorFrames = 0;
 
 	//Main loop
 	while (aptMainLoop()) {
@@ -104,6 +108,8 @@ int main(int argc, char const *argv[])
 		hidTouchRead(&touch);
 
 		u32 kDown = hidKeysDown();
+		u32 kHeld = hidKeysHeld();
+		u32 kUp = hidKeysUp();
 
 		switch(gameState) {
 			case 0:
@@ -232,18 +238,41 @@ int main(int argc, char const *argv[])
 				uint32_t cursorX = (cursorCoords & 0xFFFF0000) >> 16;
 				uint32_t cursorY = cursorCoords & 0x0000FFFF;
 				uint32_t x,y,cursorIndex;
+				char goLeft,goRight,goUp,goDown;
+				unsigned char cursorDelay = 20;
+				goLeft=goRight=goUp=goDown = 0;
+
+				goLeft = ((kDown & KEY_DLEFT) || ((leftCursorFrames > cursorDelay) && (leftCursorFrames % 2 == 0)) || (leftCursorFrames > cursorDelay * 4)) ? 1 : 0;
+				goRight = ((kDown & KEY_DRIGHT) || ((rightCursorFrames > cursorDelay) && (rightCursorFrames % 2 == 0)) || (rightCursorFrames > cursorDelay * 4)) ? 1 : 0;
+				goUp = ((kDown & KEY_DUP) || ((upCursorFrames > cursorDelay) && (upCursorFrames % 2 == 0)) || (upCursorFrames > cursorDelay * 4)) ? 1 : 0;
+				goDown = ((kDown & KEY_DDOWN) || ((downCursorFrames > cursorDelay) && (downCursorFrames % 2 == 0)) || (downCursorFrames > cursorDelay * 4)) ? 1 : 0;
+
+				//Move cursor
+				if (goLeft && cursorX > 0) cellCursor -= 1;
+				if (goRight && cursorX < (TOP_SCREEN_WIDTH - (editor->cellSize * cursorScale))) cellCursor += 1;
+				if (goUp && cursorY > 0) {
+					uint32_t newCoords = (cursorX << 16) | (int)(cursorY - editor->cellSize);
+					cellCursor = getIndex(editor, newCoords);
+				}
+				if (goDown && cursorY < (TOP_SCREEN_HEIGHT - (editor->cellSize * cursorScale))) {
+					uint32_t newCoords = (cursorX << 16) | (int)(cursorY + editor->cellSize);
+					cellCursor = getIndex(editor, newCoords);
+				}
+
+				//Place or remove cells
+				if ((kDown || kHeld) && !aDelay) {
+					for (int i = 0; i < cursorScale; i++) {
+						for (int j = 0; j < cursorScale; j++) {
+							cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
+
+							//Kill or Place cells
+							if ((kDown & KEY_A) || (kHeld & KEY_A)) newCell(editor, cursorIndex);
+							else if ((kDown & KEY_B) || (kHeld & KEY_B)) killCell(editor, cursorIndex);
+						}
+					}
+				}
 
 				if (kDown) {
-					if (kDown & KEY_DRIGHT && cursorX < (TOP_SCREEN_WIDTH - (editor->cellSize * cursorScale))) cellCursor += 1;
-					if (kDown & KEY_DLEFT && cursorX > 0) cellCursor -= 1;
-					if (kDown & KEY_DDOWN && cursorY < (TOP_SCREEN_HEIGHT - (editor->cellSize * cursorScale))) {
-						uint32_t newCoords = (cursorX << 16) | (int)(cursorY + editor->cellSize);
-						cellCursor = getIndex(editor, newCoords);
-					}
-					if (kDown & KEY_DUP && cursorY > 0) {
-						uint32_t newCoords = (cursorX << 16) | (int)(cursorY - editor->cellSize);
-						cellCursor = getIndex(editor, newCoords);
-					}
 
 					//If select button is pressed, go back to main menu
 					if (kDown & KEY_SELECT) {
@@ -253,17 +282,6 @@ int main(int argc, char const *argv[])
 						menuSelection = 0;
 						gameState = 0;
 						break;
-					}
-
-					//Manage the placing of cells
-					for (int i = 0; i < cursorScale; i++) {
-						for (int j = 0; j < cursorScale; j++) {
-							cursorIndex = (uint32_t)(cellCursor + i + ((TOP_SCREEN_WIDTH / editor->cellSize) * j));
-
-							//Kill or Place cells
-							if (kDown & KEY_A) newCell(editor, cursorIndex);
-							else if (kDown & KEY_B) killCell(editor, cursorIndex);
-						}
 					}
 
 					//If Y is Pressed, clear the screen
@@ -297,6 +315,22 @@ int main(int argc, char const *argv[])
 						break;
 					}
 				}
+
+				//Count length of held down keys
+				if (kHeld & KEY_DLEFT) leftCursorFrames += 1;
+				if (kHeld & KEY_DRIGHT) rightCursorFrames += 1;
+				if (kHeld & KEY_DUP) upCursorFrames += 1;
+				if (kHeld & KEY_DDOWN) downCursorFrames += 1;
+
+				//Reset counters if keys are released
+				if (kUp & KEY_DLEFT) leftCursorFrames = 0;
+				if (kUp & KEY_DRIGHT) rightCursorFrames = 0;
+				if (kUp & KEY_DUP) upCursorFrames = 0;
+				if (kUp & KEY_DDOWN) downCursorFrames = 0;
+
+				//Increment aframes
+				if (aDelay) aFrames += 1;
+				if (aFrames > 10) aDelay = 0;
 
 				beginFrame();
 				C2D_SceneBegin(top);
