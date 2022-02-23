@@ -11,7 +11,7 @@
 void getTitle(Grid *grid);
 void draw(Grid *grid, C3D_RenderTarget *screen, u32 bgColour, u32 fgColour);
 void updateGrid(Grid *grid);
-void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour);
+void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour, double frameNum);
 void beginFrame();
 void endFrame();
 void clrScreen(C3D_RenderTarget *screen, u32 colour);
@@ -24,6 +24,8 @@ void gameTextDeInit();
 //Create text objects for menu
 C2D_TextBuf menuBuffer;
 C2D_Text menuText[3];
+//Selection box time period for menu
+uint16_t selectionTimePeriod = 200;
 
 //Create text objects for game
 C2D_TextBuf gameBuffer;
@@ -53,7 +55,8 @@ int main(int argc, char const *argv[])
 	//Define Colours
 	u32 clrWhite = C2D_Color32f(1.0f,1.0f,1.0f,1.0f);
 	u32 clrBlack = C2D_Color32f(0.0f,0.0f,0.0f,1.0f);
-	//u32 clrGrey = C2D_Color32f(211.0f,211.0f,211.0f,1.0f);
+	u32 clrGrey = C2D_Color32f(0.08f,0.08f,0.08f,1.0f);
+	u32 clrLightGrey = C2D_Color32f(0.75f,0.75f,0.75f,1.0f);
 	u32 clrRed = C2D_Color32f(1.0f,0.0f,0.0f,1.0f);
 	u32 clrPink = C2D_Color32f(1.0f,0.42f,0.42f,1.0f);
 
@@ -62,6 +65,7 @@ int main(int argc, char const *argv[])
 
 	//Set menu selection
 	signed char menuSelection = 0; //0=START 1=EDITOR 2=EXIT
+	double menuFrameNum = 0;
 
 	//Set game paused status
 	unsigned char gamePaused = 0;
@@ -121,12 +125,16 @@ int main(int argc, char const *argv[])
 					getTitle(titlescreen);
 				}
 
+				if (menuFrameNum == selectionTimePeriod * 10) menuFrameNum = 0;
+
 				//Menu Navigation
 				if (kDown & KEY_DDOWN) {
 					menuSelection += 1;
+					menuFrameNum = 0;
 					if (menuSelection > 2) menuSelection = 0;
 				}
 				if (kDown & KEY_DUP) {
+					menuFrameNum = 0;
 					menuSelection -= 1;
 					if (menuSelection < 0) menuSelection = 2;
 				}
@@ -141,6 +149,7 @@ int main(int argc, char const *argv[])
 							grid = newEmptyGrid(cellSize);
 							fillGridRandom(grid);
 							framesSinceKeyPress = 0;
+							menuFrameNum = 0;
 							gameState = 1;
 							break;
 						case 1:
@@ -148,6 +157,7 @@ int main(int argc, char const *argv[])
 							destroyGrid(titlescreen);
 							titlescreen = NULL;
 							framesSinceKeyPress = 0;
+							menuFrameNum = 0;
 							gameState = 2;
 							break;
 						case 2:
@@ -163,18 +173,19 @@ int main(int argc, char const *argv[])
 
 				beginFrame();
 				//Draw Title Screen
-				draw(titlescreen, top, clrBlack, clrWhite);
+				draw(titlescreen, top, clrGrey, clrLightGrey);
 				//Draw Main Menu
-				drawMenu(bottom, menuSelection, clrBlack, clrWhite);
+				drawMenu(bottom, menuSelection, clrBlack, clrWhite, menuFrameNum);
 				endFrame();
 				framesSinceKeyPress += 1;
+				menuFrameNum += 1;
 				break;
 			case 1:
 				//Randomise grid when A button is pressed
 				if (kDown & KEY_A) {
 					fillGridRandom(grid);
 					beginFrame();
-					draw(grid, top, clrBlack, clrWhite);
+					draw(grid, top, clrGrey, clrLightGrey);
 					//Clear bottom screen
 					C2D_SceneBegin(bottom);
 					clrScreen(bottom, clrBlack);
@@ -214,7 +225,7 @@ int main(int argc, char const *argv[])
 					//Update cells then draw
 					updateGrid(grid);
 					beginFrame();
-					draw(grid, top, clrBlack, clrWhite);
+					draw(grid, top, clrGrey, clrLightGrey);
 					//Clear bottom screen
 					C2D_SceneBegin(bottom);
 					clrScreen(bottom, clrBlack);
@@ -224,7 +235,7 @@ int main(int argc, char const *argv[])
 					if (kDown & KEY_B) {
 						updateGrid(grid);
 					}
-					draw(grid, top, clrBlack, clrWhite);
+					draw(grid, top, clrGrey, clrLightGrey);
 					C2D_DrawText(&gameText[0],C2D_WithColor, pausetextX, pausetextY, 0.0f, 1.0f, 1.0f, clrRed);
 					//Clear bottom screen
 					C2D_SceneBegin(bottom);
@@ -338,8 +349,7 @@ int main(int argc, char const *argv[])
 				C2D_SceneBegin(top);
 				
 				//Clear top screen and draw grid
-				clrScreen(top, clrBlack);
-				draw(editor, top, clrBlack, clrWhite);
+				draw(editor, top, clrGrey, clrLightGrey);
 				
 				//Draw cursor
 
@@ -446,7 +456,7 @@ void getTitle(Grid *grid) {
 	fclose(fp);
 }
 
-void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour) {
+void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColour, double frameNum) {
 	//Setup the screen
 	clrScreen(screen, bgColour);
 	C2D_SceneBegin(screen);
@@ -460,6 +470,20 @@ void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColo
 	float selectionBoxY;
 	float selectionBoxWidth;
 	float selectionBoxHeight;
+
+	u32 selectionColour;
+	u32 textColour;
+
+	//Get selection box colour
+	if (frameNum > 200) {
+		float colourVal1 = (float) pow(cos(frameNum * (M_PI/selectionTimePeriod)),2);
+		float colourVal2 = (float) pow(sin(frameNum * (M_PI/selectionTimePeriod)),2);
+		selectionColour = C2D_Color32f(colourVal1,colourVal1,colourVal1,1.0f);
+		textColour = C2D_Color32f(colourVal2,colourVal2,colourVal2,1.0f);
+	} else {
+		selectionColour = fgColour;
+		textColour = bgColour;
+	}
 
 	for (unsigned char i = 0; i < 3; i++) {
 		//Get text dimensions
@@ -476,10 +500,10 @@ void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColo
 			selectionBoxHeight = textHeight + 4;
 
 			//Draw Square
-			C2D_DrawRectSolid(selectionBoxX, selectionBoxY, 0.0f, selectionBoxWidth, selectionBoxHeight, fgColour);
+			C2D_DrawRectSolid(selectionBoxX, selectionBoxY, 0.0f, selectionBoxWidth, selectionBoxHeight, selectionColour);
 
 			//Draw Text
-			C2D_DrawText(&menuText[i], C2D_WithColor, x, y, 0.0f, 0.5f, 0.5f, bgColour);
+			C2D_DrawText(&menuText[i], C2D_WithColor, x, y, 0.0f, 0.5f, 0.5f, textColour);
 
 			//Skip to next iteration
 			continue;
