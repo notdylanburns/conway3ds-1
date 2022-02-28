@@ -25,7 +25,7 @@ void gameTextDeInit();
 C2D_TextBuf menuBuffer;
 C2D_Text menuText[3];
 //Selection box time period for menu
-uint16_t selectionTimePeriod = 200;
+uint16_t selectionTimePeriod = 150;
 
 //Create text objects for game
 C2D_TextBuf gameBuffer;
@@ -341,9 +341,9 @@ int main(int argc, char const *argv[])
 				if (kUp & KEY_DUP) upCursorFrames = 0;
 				if (kUp & KEY_DDOWN) downCursorFrames = 0;
 
-				//Increment aframes and bframes
+				//Increment abframes
 				if (abDelay) abFrames += 1;
-				if (abFrames > 10) abDelay = abFrames = 0;
+				if (abFrames > 50) abDelay = abFrames = 0;
 
 				beginFrame();
 				C2D_SceneBegin(top);
@@ -475,7 +475,7 @@ void drawMenu(C3D_RenderTarget *screen, char selection, u32 bgColour, u32 fgColo
 	u32 textColour;
 
 	//Get selection box colour
-	if (frameNum > 200) {
+	if (frameNum > 20) {
 		float colourVal1 = (float) pow(cos(frameNum * (M_PI/selectionTimePeriod)),2);
 		float colourVal2 = (float) pow(sin(frameNum * (M_PI/selectionTimePeriod)),2);
 		selectionColour = C2D_Color32f(colourVal1,colourVal1,colourVal1,1.0f);
