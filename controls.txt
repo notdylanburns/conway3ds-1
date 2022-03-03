@@ -4,7 +4,7 @@ START - Pause
 SELECT - Return to main menu
 A - Randomise grid
 B - Return to editor
-Pause + B - Step forward 1 frame
+B (when paused) - Step forward 1 frame
 
 EDITOR:
 
@@ -12,7 +12,7 @@ DIRECTIONAL_PAD - Move cursor
 A - Place Cell
 B - Remove Cell
 Y - Clear Screen
-SELECT = Return to main menu
+SELECT - Return to main menu
 START - Run Simulation
 L - Shrink cursor
 R - Enlarge cursor
