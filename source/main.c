@@ -2,11 +2,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include "main.h"
-#include "grid.h"
-
 #include <3ds.h>
 #include <citro2d.h>
+
+#include "main.h"
+#include "grid.h"
 
 void getTitle(Grid *grid);
 void draw(Grid *grid, C3D_RenderTarget *screen, u32 bgColour, u32 fgColour);
@@ -19,7 +19,6 @@ void mainMenuInit();
 void mainMenuDeInit();
 void gameTextInit();
 void gameTextDeInit();
-
 
 //Create text objects for menu
 C2D_TextBuf menuBuffer;
