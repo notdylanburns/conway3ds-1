@@ -62,7 +62,7 @@ void setGameGrid(Game *game, Grid *newGrid) {
 }
 
 int doGameFrame(Game *g, GlobalState *s) {
-    if (keyHeld(s, KEY_A)) {
+    if (keyDown(s, KEY_A)) {
         fillGridRandom(g->grid);
         beginFrame();
         
@@ -75,7 +75,7 @@ int doGameFrame(Game *g, GlobalState *s) {
     }
 
     //If B button is pressed, return to editor
-    if (keyHeld(s, KEY_B) && !g->paused) {
+    if (keyDown(s, KEY_B) && !g->paused) {
         g->paused = 0;
         // all we have to do is set the new gamestate and the gameloop will detect this
         // and initialise the new state, as well as deinitialise the current state
@@ -84,12 +84,12 @@ int doGameFrame(Game *g, GlobalState *s) {
     }
 
     //If start button is pressed, pause game
-    if (keyHeld(s, KEY_START)) {
+    if (keyDown(s, KEY_START)) {
         g->paused = !g->paused;
     }
 
     //If select button is pressed, go back to main menu
-    if (keyHeld(s, KEY_SELECT)) {
+    if (keyDown(s, KEY_SELECT)) {
         //Set game state and menu selection and unpause game
         g->paused = 0;
         
