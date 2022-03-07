@@ -44,7 +44,9 @@ extern void updateGlobalState(GlobalState *g);
  * @param key An int holding the numerical code for the button to be checked
  * @return unsigned char 
  */
-extern unsigned char keyHeld(GlobalState *s, int key);
+inline unsigned char keyHeld(GlobalState *s, int key) {
+    return (s->kHeld & key) > 0;
+}
 
 /**
  * @brief Checks if a button is down. Returns 1 if the selected button is down, else 0.
@@ -53,7 +55,9 @@ extern unsigned char keyHeld(GlobalState *s, int key);
  * @param key An int holding the numerical code for the button to be checked
  * @return unsigned char 
  */
-extern unsigned char keyDown(GlobalState *s, int key);
+inline unsigned char keyDown(GlobalState *s, int key) {
+    return (s->kDown & key) > 0;
+}
 
 /**
  * @brief Checks if a button is up. Returns 1 if the selected button is up, else 0.
@@ -62,6 +66,8 @@ extern unsigned char keyDown(GlobalState *s, int key);
  * @param key An int holding the numerical code for the button to be checked
  * @return unsigned char 
  */
-extern unsigned char keyUp(GlobalState *s, int key);
+inline unsigned char keyUp(GlobalState *s, int key) {
+    return (s->kUp & key) > 0;
+}
 
 #endif

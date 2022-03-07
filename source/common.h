@@ -20,6 +20,11 @@ extern void beginFrame();
 extern void endFrame();
 extern void clrScreen(C3D_RenderTarget *screen, u32 colour);
 
+typedef enum {
+    TOP_SCREEN,
+    BOTTOM_SCREEN,
+} ScreenType;
+
 /**
  * @brief Draws a grid to the screen.
  * 
