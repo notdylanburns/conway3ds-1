@@ -9,7 +9,7 @@
 //                             aabbggrr - aa=alpha bb=blue gg=green rr=red
 #define COLOR_WHITE     (u32)0xffffffff 
 #define COLOR_BLACK     (u32)0xff000000
-#define COLOR_GREY      (u32)0xffcccccc
+#define COLOR_GREY      (u32)0xff141414
 #define COLOR_LIGHTGREY (u32)0xffc0c0c0
 #define COLOR_RED       (u32)0xff0000ff
 #define COLOR_PINK      (u32)0xff6b6bff

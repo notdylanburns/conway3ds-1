@@ -31,7 +31,7 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-TARGET		:=	$(notdir $(CURDIR))
+TARGET		:=	conway3ds
 BUILD		:=	build
 SOURCES		:=	source source/components
 DATA		:=	data
@@ -168,6 +168,7 @@ all: $(BUILD) $(GFXBUILD) $(DEPSDIR) $(ROMFS_T3XFILES) $(T3XHFILES)
 	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 $(BUILD):
+	@echo $(CURDIR)
 	@mkdir -p $@
 
 ifneq ($(GFXBUILD),$(BUILD))
