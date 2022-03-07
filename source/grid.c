@@ -1,19 +1,5 @@
 #include "grid.h"
 
-float randomFloat();
-Grid *newEmptyGrid(float cellSize);
-void fillGridRandom(Grid *grid);
-void destroyGrid(Grid *grid);
-char isAlive(char cell);
-void killCell(Grid *grid, uint16_t index);
-void newCell(Grid *grid, uint16_t index);
-char numberOfNeighbours(char cell);
-void checkNeighbours(Grid *grid, uint16_t index);
-uint32_t getCoords(Grid *grid, uint16_t index);
-uint32_t getIndex(Grid *grid, uint32_t coords);
-void drawGrid(Grid *grid, u32 colour);
-void updateCell(Grid *grid, uint16_t index);
-
 float randomFloat() {
 	//Remember to use srand() before using this function in order to seed to random algorithm
 	float r = rand();
@@ -56,6 +42,9 @@ void fillGridRandom(Grid *grid) {
 }
 
 void destroyGrid(Grid *grid) {
+	if (grid == NULL)
+		return;
+		
 	free(grid->cells);
 	free(grid);
 }
@@ -161,5 +150,16 @@ void drawGrid(Grid *grid, u32 colour) {
 		y = (0x0000FFFF & coords);
 
 		C2D_DrawRectSolid(x,y,0.0f,grid->cellSize,grid->cellSize,colour);
+	}
+}
+
+void updateGrid(Grid *grid) {
+	//Update Neighbours for every cell
+	for (uint16_t i = 0; i < grid->size; i++) {
+		checkNeighbours(grid, i);
+	}
+	//Update cell states
+	for (uint16_t i = 0; i < grid->size; i++) {
+		updateCell(grid, i);
 	}
 }

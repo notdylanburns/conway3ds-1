@@ -33,9 +33,9 @@ include $(DEVKITARM)/3ds_rules
 #---------------------------------------------------------------------------------
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source
+SOURCES		:=	source source/components
 DATA		:=	data
-INCLUDES	:=	include
+INCLUDES	:=	include $(DEVKITARM)/arm-none-eabi/include/
 GRAPHICS	:=	gfx
 GFXBUILD	:=	$(BUILD)
 APP_TITLE	:=	Conway 3DS

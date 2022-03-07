@@ -1,2 +1,5 @@
-.vscode/*
-.scripts/*
+.vscode
+.scripts
+.idea
+build
+conway3ds.*
